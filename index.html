@@ -256,7 +256,8 @@
       <div class="hint" style="margin-top:0; margin-bottom:8px;">
         ① 銀行アプリのスクショを写真アプリで開く<br>
         ② 文字を長押し → 全選択 → コピー<br>
-        ③ 下の枠を長押しして「ペースト」
+        ③ 下の枠を長押しして「ペースト」→「読み取る」<br>
+        <span style="color:var(--accent)">※明細の部分だけが写るようにすると正確です（上の残高や「今月」「予定」の合計は入れない）。コピーが縦の列ごとの順番でも大丈夫です。</span>
       </div>
       <textarea id="import-text" placeholder="ここに貼り付け" style="width:100%; height:140px; padding:12px; font-size:15px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--text); resize:vertical;"></textarea>
       <div class="actions" style="margin-top:12px;">
@@ -576,30 +577,36 @@ function parseTxText(text){
   const dateRe=/((?:19|20)\d{2})[.\-\/年](\d{1,2})[.\-\/月](\d{1,2})日?/;
   const amtRe=/([-−▲△])?\s*([0-9][0-9,]*)\s*円/;
   const noise=['予定','今月','レポートを見る','他の条件で検索する','普通預金','ホーム','取引','マイページ','残高','入金','出金','明細'];
-  const out=[];
-  let cur={date:null,amount:null,type:null,memo:[]};
-  const flush=()=>{
-    if(cur.amount!=null) out.push({date:cur.date||todayStr(), type:cur.type, amount:cur.amount, memo:cur.memo.join(' ').replace(/\s+/g,' ').trim()});
-    cur={date:null,amount:null,type:null,memo:[]};
-  };
+  // iPhoneのLive Textは列ごと（項目→日付をまとめて先、金額を後）に読むことがある。
+  // よって近接ではなく「出現順」で、日付つき項目(stub)と金額(amounts)を別々に集め、index順で対応づける。
+  const stubs=[];    // {date, memo}
+  const amounts=[];  // {amount, type}
+  let memoBuf=[];
   lines.forEach(line=>{
     let rest=line, date=null;
-    const hintedType = line.includes('出金') ? 'out' : (line.includes('入金') ? 'in' : null);
     const dm=line.match(dateRe);
     if(dm){ date=dm[1]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[3]).padStart(2,'0'); rest=rest.replace(dm[0],' '); }
+    const hinted = line.includes('出金') ? 'out' : (line.includes('入金') ? 'in' : null);
     const am=rest.match(amtRe);
-    let amount=null,type=null;
-    if(am){ amount=parseInt(am[2].replace(/,/g,''),10); type=am[1]?'out':(hintedType||cur.type||'in'); rest=rest.replace(am[0],' '); }
-    const memoRaw=rest.replace(/円/g,'').replace(/\s+/g,' ').trim();
-    if(amount!=null && !date && cur.date==null && noise.includes(memoRaw)) return; // 合計などのサマリー行を除外
-    const memo=noise.includes(memoRaw)?'':memoRaw;
-    if(date){ if(cur.date!=null && cur.amount!=null) flush(); cur.date=date; }
-    if(hintedType && amount==null) cur.type=hintedType;
-    if(memo) cur.memo.push(memo);
-    if(amount!=null){ cur.amount=amount; cur.type=type; }
-    if(cur.date!=null && cur.amount!=null) flush();
+    if(am){
+      const after=rest.replace(am[0],' ').replace(/円/g,'').replace(/\s+/g,' ').trim();
+      // 同じ行に「入金/出金」ラベルだけが残る合計行は金額として拾わない
+      if(!(date==null && noise.includes(after))){
+        amounts.push({amount:parseInt(am[2].replace(/,/g,''),10), type: am[1]?'out':(hinted||'in')});
+      }
+      rest=rest.replace(am[0],' ');
+    }
+    let memo=rest.replace(/円/g,'').replace(/\\/g,'').replace(/\s+/g,' ').trim();
+    if(noise.includes(memo)) memo='';
+    if(memo) memoBuf.push(memo);
+    if(date){ stubs.push({date, memo:memoBuf.join(' ').replace(/\s+/g,' ').trim()}); memoBuf=[]; }
   });
-  flush();
+  const out=[];
+  if(stubs.length){
+    stubs.forEach((s,i)=>{ const a=amounts[i]; out.push({date:s.date, memo:s.memo, amount:a?a.amount:null, type:a?a.type:'out'}); });
+  }else{
+    amounts.forEach(a=>out.push({date:todayStr(), memo:'', amount:a.amount, type:a.type}));
+  }
   return out;
 }
 function parseImport(){
@@ -613,12 +620,13 @@ function renderImportPreview(){
   const el=document.getElementById('import-list');
   const btn=document.getElementById('import-add-btn');
   if(importItems.length===0){ el.innerHTML='<div class="imp-empty">追加する行がありません。</div>'; btn.style.display='none'; return; }
-  btn.style.display=''; btn.textContent=importItems.length+'件を追加';
+  const okCount=importItems.filter(t=>parseFloat(t.amount)>0).length;
+  btn.style.display=''; btn.textContent=okCount+'件を追加';
   el.innerHTML=importItems.map((t,i)=>`
     <div class="imp-row">
       <div class="r1">
         <button class="tg ${t.type}" onclick="toggleImpType(${i})">${t.type==='in'?'入金':'出金'}</button>
-        <input class="amt-in num" type="number" inputmode="numeric" value="${t.amount}" oninput="importItems[${i}].amount=this.value">
+        <input class="amt-in num" type="number" inputmode="numeric" value="${t.amount==null?'':t.amount}" placeholder="金額" oninput="importItems[${i}].amount=this.value">
         <button class="rm" onclick="removeImp(${i})" aria-label="削除">✕</button>
       </div>
       <div class="r2">
