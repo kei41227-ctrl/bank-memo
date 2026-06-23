@@ -347,9 +347,6 @@ function render(){
   document.getElementById('acct-name').textContent = acct().name;
   document.getElementById('tab-home').classList.toggle('on', tab==='home');
   document.getElementById('tab-acct').classList.toggle('on', tab==='account');
-  const lb=document.getElementById('lock-btn');
-  lb.textContent = data.locked ? '🔒' : '⋯';
-  lb.classList.toggle('locked', !!data.locked);
 
   const today = todayStr();
   const all = acct().txs;
@@ -360,10 +357,9 @@ function render(){
   const now=new Date(),p=n=>String(n).padStart(2,'0');
   const timeStr=`${now.getFullYear()}.${p(now.getMonth()+1)}.${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())} 現在`;
 
-  const banner = data.locked ? `<div class="lock-banner">🔒 閲覧専用モード（右上の鍵で解除）</div>` : '';
-  document.getElementById('app').innerHTML = banner +
-    ((tab==='home') ? homeHtml(all, today, balStr, timeStr, hidden, now)
-                    : accountHtml(all, today, balStr, timeStr, hidden, now, p, signed));
+  document.getElementById('app').innerHTML =
+    (tab==='home') ? homeHtml(all, today, balStr, timeStr, hidden, now)
+                   : accountHtml(all, today, balStr, timeStr, hidden, now, p, signed);
 }
 
 function balEyeHtml(hidden){
@@ -482,10 +478,7 @@ function toggleHide(){ acct().hidden=!acct().hidden; save(); render(); }
 
 // ---- 編集ロック（閲覧専用） ----
 function toggleLock(){ data.locked=!data.locked; save(); render(); }
-function ensureUnlocked(){
-  if(data.locked){ alert('🔒 閲覧専用モードです。\n右上の鍵マーク（🔒）をタップすると編集できます。'); return false; }
-  return true;
-}
+function ensureUnlocked(){ return !data.locked; }
 
 // ---- 取引 ----
 function openTx(id){
