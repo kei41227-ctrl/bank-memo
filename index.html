@@ -51,7 +51,8 @@
   .bal-wrap{padding:8px 0 4px;}
   .bal-amt{font-size:46px; font-weight:800; letter-spacing:-1px; line-height:1.05;}
   .bal-amt .yen{font-size:20px; font-weight:700; margin-left:4px;}
-  .eye{background:none;border:none;color:var(--accent);font-size:20px;cursor:pointer;vertical-align:8px;margin-left:6px;}
+  .eye{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;margin-left:10px;vertical-align:middle;}
+  .eye svg{display:block;}
   .bal-time{color:var(--sub); font-size:13px; margin-top:6px;}
 
   .chips{display:flex; gap:9px; padding:14px 0 4px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
@@ -170,7 +171,7 @@
 
   <div class="bal-wrap">
     <div class="bal-amt num"><span id="bal-num">0</span><span class="yen">円</span>
-      <button class="eye" id="eye" onclick="toggleHide()" aria-label="残高表示切替">🙈</button>
+      <button class="eye" id="eye" onclick="toggleHide()" aria-label="残高表示切替"></button>
     </div>
     <div class="bal-time" id="bal-time">— 現在</div>
   </div>
@@ -327,6 +328,12 @@ function fmt(n){ return Math.round(n).toLocaleString('ja-JP'); }
 function todayStr(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function dotJP(d){ return d.replace(/-/g,'.'); }
+function eyeSvg(off){
+  const a='width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  return off
+    ? `<svg ${a}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" y1="2" x2="22" y2="22"/></svg>`
+    : `<svg ${a}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
 
 function render(){
   applyTheme(acct().color || DEFAULT_COLOR);
@@ -341,7 +348,7 @@ function render(){
   all.forEach(t=>{ if(t.date<=today) bal+=signed(t); });
   const hidden = !!acct().hidden;
   document.getElementById('bal-num').textContent = hidden ? '●●●●●' : fmt(bal);
-  document.getElementById('eye').textContent = hidden ? '🙈' : '👁️';
+  document.getElementById('eye').innerHTML = eyeSvg(hidden);
 
   // 「現在」時刻
   const now=new Date(),p=n=>String(n).padStart(2,'0');
