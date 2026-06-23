@@ -641,9 +641,19 @@ function backImport(){ document.getElementById('import-step1').style.display='bl
 function commitImport(){
   const valid=importItems.filter(t=>t.amount && !isNaN(parseFloat(t.amount)) && parseFloat(t.amount)>0);
   if(valid.length===0){ alert('追加できる行がありません。'); return; }
-  valid.forEach(t=>acct().txs.push({id:uid(), type:t.type, amount:Math.abs(parseFloat(t.amount)), date:t.date||todayStr(), memo:(t.memo||'').trim()}));
+  // 重複判定キー（日付・入出金・金額・摘要が一致したら同じ取引とみなす）
+  const key=t=>`${t.date||todayStr()}|${t.type}|${Math.abs(parseFloat(t.amount))}|${(t.memo||'').trim()}`;
+  const seen=new Set(acct().txs.map(key));
+  let added=0, skipped=0;
+  valid.forEach(t=>{
+    const k=key(t);
+    if(seen.has(k)){ skipped++; return; } // 既存またはバッチ内の重複はスキップ
+    seen.add(k);
+    acct().txs.push({id:uid(), type:t.type, amount:Math.abs(parseFloat(t.amount)), date:t.date||todayStr(), memo:(t.memo||'').trim()});
+    added++;
+  });
   save(); render(); closeSheet('import-sheet');
-  alert(valid.length+'件を追加しました。');
+  alert(`${added}件を追加しました。`+(skipped?`\n（重複していた${skipped}件はスキップしました）`:''));
 }
 
 // ---- バックアップ ----
