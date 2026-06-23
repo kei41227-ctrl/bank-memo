@@ -55,6 +55,18 @@
   .eye svg{display:block;}
   .bal-time{color:var(--sub); font-size:13px; margin-top:6px;}
 
+  /* ===== Topbar / Home ===== */
+  .topbar{display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:calc(8px + var(--safe-top)) 16px 8px;}
+  .acct-pick .caret{color:var(--sub); font-size:12px;}
+  .greeting{font-size:20px; font-weight:700; margin:10px 4px 14px;}
+  .balance-card{background:var(--accent); color:#fff; border-radius:18px; padding:18px 20px; box-shadow:0 4px 16px rgba(0,0,0,.10); overflow:hidden; position:relative;}
+  .balance-card .bc-top{display:flex; justify-content:space-between; align-items:center; font-size:13px; opacity:.95;}
+  .balance-card .bc-label{font-size:14px; opacity:.95; margin-top:14px; display:flex; align-items:center; gap:6px;}
+  .balance-card .bc-amt{font-size:40px; font-weight:800; letter-spacing:-1px; line-height:1.1; margin-top:2px;}
+  .balance-card .bc-amt .yen{font-size:18px; font-weight:700; margin-left:4px;}
+  .balance-card .eye{color:#fff;}
+  .balance-card .eye svg{display:block;}
+
   .chips{display:flex; gap:9px; padding:14px 0 4px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .chips::-webkit-scrollbar{display:none;}
   .chip{
@@ -160,37 +172,23 @@
 </head>
 <body>
 
-<header>
-  <div class="top-row">
-    <button class="acct-pick" onclick="openAccts()">
-      <span class="dot"></span>
-      <span><span class="nm" id="acct-name">口座</span><br><span class="car">普通預金</span></span>
-    </button>
-    <button class="icon-btn" onclick="openMenu()" aria-label="メニュー">⋯</button>
-  </div>
+<div class="topbar">
+  <button class="acct-pick" onclick="openAccts()">
+    <span class="dot"></span>
+    <span class="nm" id="acct-name">口座</span>
+    <span class="caret">▾</span>
+  </button>
+  <button class="icon-btn" onclick="openMenu()" aria-label="メニュー">⋯</button>
+</div>
 
-  <div class="bal-wrap">
-    <div class="bal-amt num"><span id="bal-num">0</span><span class="yen">円</span>
-      <button class="eye" id="eye" onclick="toggleHide()" aria-label="残高表示切替"></button>
-    </div>
-    <div class="bal-time" id="bal-time">— 現在</div>
-  </div>
-
-  <div class="chips" id="chips"></div>
-  <div class="search-link"><button onclick="clearFilter()" id="clear-filter" style="display:none">すべて表示 ✕</button></div>
-</header>
-
-<main>
-  <div id="upcoming"></div>
-  <div id="content"></div>
-</main>
+<main id="app"></main>
 
 <!-- Bottom nav -->
 <nav class="nav">
-  <button class="on" onclick="scrollTop()"><span class="ic">🏠</span>ホーム</button>
-  <button onclick="scrollTop()"><span class="ic">📋</span>明細</button>
-  <button class="add" onclick="openTx()"><span class="ic">＋</span>記録</button>
-  <button onclick="openMenu()"><span class="ic">⚙️</span>設定</button>
+  <button id="tab-home" class="on" onclick="setTab('home')"><span class="ic">🏠</span>ホーム</button>
+  <button id="tab-acct" onclick="setTab('account')"><span class="ic">📋</span>普通預金</button>
+  <button onclick="openTx()"><span class="ic">🔁</span>取引</button>
+  <button onclick="openMenu()"><span class="ic">👤</span>マイページ</button>
 </nav>
 
 <!-- 取引入力 -->
@@ -336,112 +334,121 @@ function eyeSvg(off){
     : `<svg ${a}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 }
 
+let tab='home';
+function setTab(t){ tab=t; if(t!=='account') filter=null; render(); window.scrollTo({top:0}); }
+
 function render(){
   applyTheme(acct().color || DEFAULT_COLOR);
   document.getElementById('acct-name').textContent = acct().name;
+  document.getElementById('tab-home').classList.toggle('on', tab==='home');
+  document.getElementById('tab-acct').classList.toggle('on', tab==='account');
 
   const today = todayStr();
   const all = acct().txs;
   const signed = t => t.type==='in'? t.amount : -t.amount;
-
-  // 残高（今日までの確定分）
-  let bal=0;
-  all.forEach(t=>{ if(t.date<=today) bal+=signed(t); });
+  let bal=0; all.forEach(t=>{ if(t.date<=today) bal+=signed(t); });
   const hidden = !!acct().hidden;
-  document.getElementById('bal-num').textContent = hidden ? '●●●●●' : fmt(bal);
-  document.getElementById('eye').innerHTML = eyeSvg(hidden);
-
-  // 「現在」時刻
+  const balStr = hidden ? '●●●●●' : fmt(bal);
   const now=new Date(),p=n=>String(n).padStart(2,'0');
-  document.getElementById('bal-time').textContent =
-    `${now.getFullYear()}.${p(now.getMonth()+1)}.${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())} 現在`;
+  const timeStr=`${now.getFullYear()}.${p(now.getMonth()+1)}.${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())} 現在`;
 
-  // チップ（直近3ヶ月＋入金/出金）
-  const months=[];
-  for(let i=1;i<=3;i++){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push((d.getMonth()+1)+'月::'+d.getFullYear()+'-'+p(d.getMonth()+1)); }
-  let chipHtml = months.map(m=>{ const [lbl,key]=m.split('::'); const on=filter&&filter.month===key; return `<button class="chip ${on?'on':''}" onclick="setMonth('${key}')">${lbl}</button>`; }).join('');
-  chipHtml += `<button class="chip ${filter&&filter.type==='in'?'on':''}" onclick="setTypeFilter('in')">入金</button>`;
-  chipHtml += `<button class="chip ${filter&&filter.type==='out'?'on':''}" onclick="setTypeFilter('out')">出金</button>`;
-  document.getElementById('chips').innerHTML = chipHtml;
-  document.getElementById('clear-filter').style.display = filter ? 'inline-block' : 'none';
+  document.getElementById('app').innerHTML =
+    (tab==='home') ? homeHtml(all, today, balStr, timeStr, hidden, now)
+                   : accountHtml(all, today, balStr, timeStr, hidden, now, p, signed);
+}
 
-  // 予定（未来日付）
-  const up = document.getElementById('upcoming');
-  const future = all.filter(t=>t.date>today).sort((a,b)=> a.date<b.date?-1:1);
-  if(future.length && !filter){
-    const fout = future.filter(t=>t.type==='out').reduce((s,t)=>s+t.amount,0);
-    up.innerHTML = `<div class="sec-head"><span>予定</span></div>
+function balEyeHtml(hidden){
+  return `<button class="eye" onclick="toggleHide()" aria-label="残高表示切替">${eyeSvg(hidden)}</button>`;
+}
+
+// ホームタブ：あいさつ＋残高カード＋直近の入出金＋予定
+function homeHtml(all, today, balStr, timeStr, hidden, now){
+  const h=now.getHours();
+  const greet=(h>=5&&h<11)?'おはようございます':(h>=11&&h<18)?'こんにちは':'こんばんは';
+  const recent=all.filter(t=>t.date<=today).sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:(a.id<b.id?1:-1)).slice(0,5);
+  const future=all.filter(t=>t.date>today).sort((a,b)=> a.date<b.date?-1:1);
+  let html=`<div class="greeting">${greet}</div>`;
+  html+=`<div class="balance-card">
+      <div class="bc-top"><span>普通預金</span><span class="num">${timeStr}</span></div>
+      <div class="bc-label">口座残高 ${balEyeHtml(hidden)}</div>
+      <div class="bc-amt num">${balStr}<span class="yen">円</span></div>
+    </div>`;
+  html+=`<div class="sec-head"><span>直近の入出金</span><button class="link" onclick="setTab('account')">すべて見る</button></div>`;
+  if(recent.length===0){
+    html+=`<div class="empty">まだ記録がありません。<br>下の「取引」から入金・出金を追加してください。</div>`;
+  }else{
+    html+=`<div class="card">${recent.map(t=>txRow(t,null)).join('')}</div>`;
+  }
+  if(future.length){
+    const fout=future.filter(t=>t.type==='out').reduce((s,t)=>s+t.amount,0);
+    html+=`<div class="sec-head"><span>予定</span></div>
       <div class="card">
         <div class="sum-card" style="padding-bottom:6px;"><div class="sum-line"><span class="lbl">出金</span><span class="v out num">${fmt(fout)} 円</span></div></div>
         ${future.map(t=>txRow(t,null)).join('')}
       </div>`;
-  } else up.innerHTML='';
+  }
+  return html;
+}
 
-  // 今月サマリー
-  const ym = now.getFullYear()+'-'+p(now.getMonth()+1);
+// 普通預金タブ：残高＋フィルター＋予定＋今月＋明細（月ごと）
+function accountHtml(all, today, balStr, timeStr, hidden, now, p, signed){
+  let html=`<div class="bal-wrap">
+      <div class="bal-amt num">${balStr}<span class="yen">円</span>${balEyeHtml(hidden)}</div>
+      <div class="bal-time num">${timeStr}</div>
+    </div>`;
+
+  const months=[];
+  for(let i=1;i<=3;i++){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push((d.getMonth()+1)+'月::'+d.getFullYear()+'-'+p(d.getMonth()+1)); }
+  let chipHtml=months.map(m=>{ const [lbl,key]=m.split('::'); const on=filter&&filter.month===key; return `<button class="chip ${on?'on':''}" onclick="setMonth('${key}')">${lbl}</button>`; }).join('');
+  chipHtml+=`<button class="chip ${filter&&filter.type==='in'?'on':''}" onclick="setTypeFilter('in')">入金</button>`;
+  chipHtml+=`<button class="chip ${filter&&filter.type==='out'?'on':''}" onclick="setTypeFilter('out')">出金</button>`;
+  html+=`<div class="chips">${chipHtml}</div>`;
+  if(filter) html+=`<div class="search-link"><button onclick="clearFilter()">すべて表示 ✕</button></div>`;
+
+  const future=all.filter(t=>t.date>today).sort((a,b)=> a.date<b.date?-1:1);
+  if(future.length && !filter){
+    const fout=future.filter(t=>t.type==='out').reduce((s,t)=>s+t.amount,0);
+    html+=`<div class="sec-head"><span>予定</span></div>
+      <div class="card">
+        <div class="sum-card" style="padding-bottom:6px;"><div class="sum-line"><span class="lbl">出金</span><span class="v out num">${fmt(fout)} 円</span></div></div>
+        ${future.map(t=>txRow(t,null)).join('')}
+      </div>`;
+  }
+
+  const ym=now.getFullYear()+'-'+p(now.getMonth()+1);
   let mIn=0,mOut=0;
   all.forEach(t=>{ if(t.date.slice(0,7)===ym && t.date<=today){ if(t.type==='in')mIn+=t.amount; else mOut+=t.amount; } });
 
-  // 明細（確定分、フィルタ適用）
-  let list = all.filter(t=>t.date<=today);
-  if(filter && filter.month) list = list.filter(t=>t.date.slice(0,7)===filter.month);
-  if(filter && filter.type) list = list.filter(t=>t.type===filter.type);
+  let list=all.filter(t=>t.date<=today);
+  if(filter && filter.month) list=list.filter(t=>t.date.slice(0,7)===filter.month);
+  if(filter && filter.type) list=list.filter(t=>t.type===filter.type);
   list.sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:(a.id<b.id?1:-1));
-
-  // 各行の時点残高
   const asc=[...all].filter(t=>t.date<=today).sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1));
   const run={}; let r=0; asc.forEach(t=>{ r+=signed(t); run[t.id]=r; });
 
-  let html='';
   if(filter){
-    // フィルタ表示：絞り込みタイトル＋月ごとの見出し
-    const ftitle = filter.month? parseInt(filter.month.split('-')[1])+'月の明細' : (filter.type==='in'?'入金の明細':'出金の明細');
-    html += `<div class="sec-head"><span>${ftitle}</span></div>`;
-    if(list.length===0){
-      html += `<div class="empty">該当する記録がありません。</div>`;
-    }else{
+    const ftitle=filter.month? parseInt(filter.month.split('-')[1])+'月の明細' : (filter.type==='in'?'入金の明細':'出金の明細');
+    html+=`<div class="sec-head"><span>${ftitle}</span></div>`;
+    if(list.length===0){ html+=`<div class="empty">該当する記録がありません。</div>`; }
+    else{
       let curM='';
-      list.forEach(t=>{
-        const mk=t.date.slice(0,7);
-        if(mk!==curM){
-          if(curM!=='') html+='</div>';
-          const [yy,mm]=mk.split('-');
-          html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`;
-          curM=mk;
-        }
-        html+=txRow(t,run[t.id]);
-      });
+      list.forEach(t=>{ const mk=t.date.slice(0,7); if(mk!==curM){ if(curM!=='') html+='</div>'; const [yy,mm]=mk.split('-'); html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`; curM=mk; } html+=txRow(t,run[t.id]); });
       html+='</div>';
     }
   }else{
-    // 通常表示：今月サマリー → 当月明細は見出しなしで直下に、過去月だけ月見出し付き
-    html += `<div class="sec-head"><span>今月</span></div>
+    html+=`<div class="sec-head"><span>今月</span></div>
       <div class="card sum-card">
         <div class="sum-line"><span class="lbl">入金</span><span class="v in num">${fmt(mIn)} 円</span></div>
         <div class="sum-line"><span class="lbl">出金</span><span class="v out num">${fmt(mOut)} 円</span></div>
       </div>`;
-    if(list.length===0){
-      html += `<div class="empty">まだ記録がありません。<br>下の「＋ 記録」から入金・出金を追加してください。</div>`;
-    }else{
+    if(list.length===0){ html+=`<div class="empty">まだ記録がありません。<br>下の「取引」から入金・出金を追加してください。</div>`; }
+    else{
       let curM='';
-      list.forEach(t=>{
-        const mk=t.date.slice(0,7);
-        if(mk!==curM){
-          if(curM!=='') html+='</div>';
-          if(mk===ym){
-            html+=`<div class="card" style="margin-top:10px">`;
-          }else{
-            const [yy,mm]=mk.split('-');
-            html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`;
-          }
-          curM=mk;
-        }
-        html+=txRow(t,run[t.id]);
-      });
+      list.forEach(t=>{ const mk=t.date.slice(0,7); if(mk!==curM){ if(curM!=='') html+='</div>'; if(mk===ym){ html+=`<div class="card" style="margin-top:10px">`; }else{ const [yy,mm]=mk.split('-'); html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`; } curM=mk; } html+=txRow(t,run[t.id]); });
       html+='</div>';
     }
   }
-  document.getElementById('content').innerHTML = html;
+  return html;
 }
 
 function txRow(t, running){
