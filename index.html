@@ -143,6 +143,18 @@
   .bank-btn{border:2px solid transparent; border-radius:12px; padding:11px 4px; cursor:pointer; color:#fff; font-size:12px; font-weight:700; line-height:1.3; text-align:center;}
   .bank-btn.sel{box-shadow:0 0 0 2px #fff inset, 0 0 0 4px var(--text);}
   .bank-btn .chk{display:block; height:15px; font-size:13px;}
+  .imp-row{border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:10px;}
+  .imp-row .r1{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
+  .imp-row .tg{border:none; border-radius:8px; padding:8px 10px; font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap;}
+  .imp-row .tg.in{background:var(--in);}
+  .imp-row .tg.out{background:#101114;}
+  .imp-row .amt-in{flex:1; text-align:right; font-size:18px; font-weight:700; border:1px solid var(--line); border-radius:8px; padding:8px; color:var(--text);}
+  .imp-row .rm{background:none; border:none; color:#d6453d; font-size:20px; cursor:pointer; padding:0 4px;}
+  .imp-row .r2{display:flex; gap:8px;}
+  .imp-row .r2 input{border:1px solid var(--line); border-radius:8px; padding:8px; font-size:14px; color:var(--text); background:#fff;}
+  .imp-row .r2 .dt{width:140px;}
+  .imp-row .r2 .mm{flex:1; min-width:0;}
+  .imp-empty{text-align:center; color:var(--sub); padding:24px; font-size:14px;}
 </style>
 </head>
 <body>
@@ -220,6 +232,7 @@
 <div class="sheet-bg" id="menu-sheet">
   <div class="sheet">
     <h2>メニュー</h2>
+    <button class="menu-item" onclick="openImport()">📸　スクショから取り込み</button>
     <button class="menu-item" onclick="renameAccount()">✏️　口座名を変更</button>
     <button class="menu-item" onclick="openTheme()">🎨　銀行・色を変更</button>
     <button class="menu-item" onclick="exportData()">⬇️　バックアップを書き出す</button>
@@ -231,6 +244,33 @@
     </div>
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this.files[0])">
     <button class="btn ghost" style="margin-top:14px;" onclick="closeSheet('menu-sheet')">閉じる</button>
+  </div>
+</div>
+
+<!-- スクショから取り込み -->
+<div class="sheet-bg" id="import-sheet">
+  <div class="sheet" style="max-height:88vh; overflow-y:auto;">
+    <h2>スクショから取り込み</h2>
+    <div id="import-step1">
+      <div class="hint" style="margin-top:0; margin-bottom:8px;">
+        ① 銀行アプリのスクショを写真アプリで開く<br>
+        ② 文字を長押し → 全選択 → コピー<br>
+        ③ 下の枠を長押しして「ペースト」
+      </div>
+      <textarea id="import-text" placeholder="ここに貼り付け" style="width:100%; height:140px; padding:12px; font-size:15px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--text); resize:vertical;"></textarea>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn ghost" onclick="closeSheet('import-sheet')">閉じる</button>
+        <button class="btn primary" onclick="parseImport()">読み取る</button>
+      </div>
+    </div>
+    <div id="import-step2" style="display:none;">
+      <div class="hint" style="margin-top:0;">読み取り結果です。間違いがあれば直して、不要な行は ✕ で消してください。</div>
+      <div id="import-list"></div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn ghost" onclick="backImport()">やり直す</button>
+        <button class="btn primary" id="import-add-btn" onclick="commitImport()">追加する</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -345,29 +385,53 @@ function render(){
   const run={}; let r=0; asc.forEach(t=>{ r+=signed(t); run[t.id]=r; });
 
   let html='';
-  html += `<div class="sec-head"><span>今月</span></div>
-    <div class="card sum-card">
-      <div class="sum-line"><span class="lbl">入金</span><span class="v in num">${fmt(mIn)} 円</span></div>
-      <div class="sum-line"><span class="lbl">出金</span><span class="v out num">${fmt(mOut)} 円</span></div>
-    </div>`;
-
-  const title = filter ? (filter.month? filter.month.split('-')[1].replace(/^0/,'')+'月の明細' : (filter.type==='in'?'入金の明細':'出金の明細')) : '明細';
-  html += `<div class="sec-head"><span>${title}</span></div>`;
-  if(list.length===0){
-    html += `<div class="empty">${filter?'該当する記録がありません。':'まだ記録がありません。<br>下の「＋ 記録」から入金・出金を追加してください。'}</div>`;
+  if(filter){
+    // フィルタ表示：絞り込みタイトル＋月ごとの見出し
+    const ftitle = filter.month? parseInt(filter.month.split('-')[1])+'月の明細' : (filter.type==='in'?'入金の明細':'出金の明細');
+    html += `<div class="sec-head"><span>${ftitle}</span></div>`;
+    if(list.length===0){
+      html += `<div class="empty">該当する記録がありません。</div>`;
+    }else{
+      let curM='';
+      list.forEach(t=>{
+        const mk=t.date.slice(0,7);
+        if(mk!==curM){
+          if(curM!=='') html+='</div>';
+          const [yy,mm]=mk.split('-');
+          html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`;
+          curM=mk;
+        }
+        html+=txRow(t,run[t.id]);
+      });
+      html+='</div>';
+    }
   }else{
-    let curM='';
-    list.forEach(t=>{
-      const mk=t.date.slice(0,7);
-      if(mk!==curM){
-        if(curM!=='') html+='</div>';
-        const [yy,mm]=mk.split('-');
-        html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`;
-        curM=mk;
-      }
-      html+=txRow(t,run[t.id]);
-    });
-    html+='</div>';
+    // 通常表示：今月サマリー → 当月明細は見出しなしで直下に、過去月だけ月見出し付き
+    html += `<div class="sec-head"><span>今月</span></div>
+      <div class="card sum-card">
+        <div class="sum-line"><span class="lbl">入金</span><span class="v in num">${fmt(mIn)} 円</span></div>
+        <div class="sum-line"><span class="lbl">出金</span><span class="v out num">${fmt(mOut)} 円</span></div>
+      </div>`;
+    if(list.length===0){
+      html += `<div class="empty">まだ記録がありません。<br>下の「＋ 記録」から入金・出金を追加してください。</div>`;
+    }else{
+      let curM='';
+      list.forEach(t=>{
+        const mk=t.date.slice(0,7);
+        if(mk!==curM){
+          if(curM!=='') html+='</div>';
+          if(mk===ym){
+            html+=`<div class="card" style="margin-top:10px">`;
+          }else{
+            const [yy,mm]=mk.split('-');
+            html+=`<div class="month-sep">${yy}年${parseInt(mm)}月</div><div class="card">`;
+          }
+          curM=mk;
+        }
+        html+=txRow(t,run[t.id]);
+      });
+      html+='</div>';
+    }
   }
   document.getElementById('content').innerHTML = html;
 }
@@ -488,6 +552,84 @@ function renderBankGrid(){
   }).join('');
 }
 function pickColor(color){ acct().color=color; save(); applyTheme(color); renderBankGrid(); render(); }
+
+// ---- スクショから取り込み ----
+let importItems=[];
+function openImport(){
+  closeSheet('menu-sheet');
+  document.getElementById('import-text').value='';
+  document.getElementById('import-step1').style.display='block';
+  document.getElementById('import-step2').style.display='none';
+  openSheet('import-sheet');
+}
+// 貼り付けテキストを入出金の配列に解析
+function parseTxText(text){
+  const norm=text.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/，/g,',').replace(/　/g,' ');
+  const lines=norm.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const dateRe=/((?:19|20)\d{2})[.\-\/年](\d{1,2})[.\-\/月](\d{1,2})日?/;
+  const amtRe=/([-−▲△])?\s*([0-9][0-9,]*)\s*円/;
+  const noise=['予定','今月','レポートを見る','他の条件で検索する','普通預金','ホーム','取引','マイページ','残高','入金','出金','明細'];
+  const out=[];
+  let cur={date:null,amount:null,type:null,memo:[]};
+  const flush=()=>{
+    if(cur.amount!=null) out.push({date:cur.date||todayStr(), type:cur.type, amount:cur.amount, memo:cur.memo.join(' ').replace(/\s+/g,' ').trim()});
+    cur={date:null,amount:null,type:null,memo:[]};
+  };
+  lines.forEach(line=>{
+    let rest=line, date=null;
+    const hintedType = line.includes('出金') ? 'out' : (line.includes('入金') ? 'in' : null);
+    const dm=line.match(dateRe);
+    if(dm){ date=dm[1]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[3]).padStart(2,'0'); rest=rest.replace(dm[0],' '); }
+    const am=rest.match(amtRe);
+    let amount=null,type=null;
+    if(am){ amount=parseInt(am[2].replace(/,/g,''),10); type=am[1]?'out':(hintedType||cur.type||'in'); rest=rest.replace(am[0],' '); }
+    const memoRaw=rest.replace(/円/g,'').replace(/\s+/g,' ').trim();
+    if(amount!=null && !date && cur.date==null && noise.includes(memoRaw)) return; // 合計などのサマリー行を除外
+    const memo=noise.includes(memoRaw)?'':memoRaw;
+    if(date){ if(cur.date!=null && cur.amount!=null) flush(); cur.date=date; }
+    if(hintedType && amount==null) cur.type=hintedType;
+    if(memo) cur.memo.push(memo);
+    if(amount!=null){ cur.amount=amount; cur.type=type; }
+    if(cur.date!=null && cur.amount!=null) flush();
+  });
+  flush();
+  return out;
+}
+function parseImport(){
+  importItems=parseTxText(document.getElementById('import-text').value);
+  if(importItems.length===0){ alert('読み取れる入出金が見つかりませんでした。スクショの文字をコピーして貼り付けたか確認してください。'); return; }
+  renderImportPreview();
+  document.getElementById('import-step1').style.display='none';
+  document.getElementById('import-step2').style.display='block';
+}
+function renderImportPreview(){
+  const el=document.getElementById('import-list');
+  const btn=document.getElementById('import-add-btn');
+  if(importItems.length===0){ el.innerHTML='<div class="imp-empty">追加する行がありません。</div>'; btn.style.display='none'; return; }
+  btn.style.display=''; btn.textContent=importItems.length+'件を追加';
+  el.innerHTML=importItems.map((t,i)=>`
+    <div class="imp-row">
+      <div class="r1">
+        <button class="tg ${t.type}" onclick="toggleImpType(${i})">${t.type==='in'?'入金':'出金'}</button>
+        <input class="amt-in num" type="number" inputmode="numeric" value="${t.amount}" oninput="importItems[${i}].amount=this.value">
+        <button class="rm" onclick="removeImp(${i})" aria-label="削除">✕</button>
+      </div>
+      <div class="r2">
+        <input class="dt" type="date" value="${t.date}" oninput="importItems[${i}].date=this.value">
+        <input class="mm" type="text" value="${esc(t.memo)}" placeholder="摘要（メモ）" oninput="importItems[${i}].memo=this.value">
+      </div>
+    </div>`).join('');
+}
+function toggleImpType(i){ importItems[i].type=importItems[i].type==='in'?'out':'in'; renderImportPreview(); }
+function removeImp(i){ importItems.splice(i,1); renderImportPreview(); }
+function backImport(){ document.getElementById('import-step1').style.display='block'; document.getElementById('import-step2').style.display='none'; }
+function commitImport(){
+  const valid=importItems.filter(t=>t.amount && !isNaN(parseFloat(t.amount)) && parseFloat(t.amount)>0);
+  if(valid.length===0){ alert('追加できる行がありません。'); return; }
+  valid.forEach(t=>acct().txs.push({id:uid(), type:t.type, amount:Math.abs(parseFloat(t.amount)), date:t.date||todayStr(), memo:(t.memo||'').trim()}));
+  save(); render(); closeSheet('import-sheet');
+  alert(valid.length+'件を追加しました。');
+}
 
 // ---- バックアップ ----
 function exportData(){
