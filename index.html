@@ -349,6 +349,25 @@ function fmt(n){ return Math.round(n).toLocaleString('ja-JP'); }
 function todayStr(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function dotJP(d){ return d.replace(/-/g,'.'); }
+// 表示用：全角カナ・全角英数記号を半角に（銀行アプリの明細と同じ見え方に）。保存データは変えない
+const HANKANA=(()=>{ const f='ァアィイゥウェエォオカキクケコサシスセソタチッツテトナニヌネノハヒフヘホマミムメモャヤュユョヨラリルレロワヲンー・「」、。', h='ｧｱｨｲｩｳｪｴｫｵｶｷｸｹｺｻｼｽｾｿﾀﾁｯﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓｬﾔｭﾕｮﾖﾗﾘﾙﾚﾛﾜｦﾝｰ･｢｣､｡'; const m={}; [...f].forEach((c,i)=>m[c]=h[i]); return m; })();
+function toHankaku(str){
+  let out='', prevKana=false;
+  for(const c of String(str)){
+    // すでに分解済みの濁点・半濁点（カ+゛）は直前の半角カナにつなげる
+    if((c==='\u3099'||c==='\u309A') && prevKana){ out+=(c==='\u3099'?'ﾞ':'ﾟ'); prevKana=false; continue; }
+    prevKana=false;
+    if(HANKANA[c]){ out+=HANKANA[c]; prevKana=true; continue; }
+    const code=c.charCodeAt(0);
+    if(code>=0xFF01 && code<=0xFF5E){ out+=String.fromCharCode(code-0xFEE0); continue; }
+    const d=c.normalize('NFD'); // ガ→カ+濁点、パ→ハ+半濁点、ヴ→ウ+濁点
+    if(d.length===2 && HANKANA[d[0]] && (d[1]==='\u3099'||d[1]==='\u309A')){ out+=HANKANA[d[0]]+(d[1]==='\u3099'?'ﾞ':'ﾟ'); continue; }
+    out+=c;
+  }
+  // 銀行明細は「種別　相手先」の間が全角スペース。最初の半角スペースだけ全角にして揃える
+  out=out.trim();
+  return out.includes('\u3000') ? out : out.replace(/ +/,'\u3000');
+}
 function eyeSvg(off){
   const a='width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
   return off
@@ -500,7 +519,7 @@ function txRow(t){
   const sign = t.type==='in'? '' : '-';
   return `<div class="tx" onclick="openTx('${t.id}')">
     <div class="body">
-      <div class="ttl">${esc(t.memo||(t.type==='in'?'入金':'出金'))}</div>
+      <div class="ttl">${esc(toHankaku(t.memo||'') || (t.type==='in'?'入金':'出金'))}</div>
       <div class="date">${dotJP(t.date)}</div>
     </div>
     <div class="amt ${t.type} num">${sign}${yenHtml(t.amount)}</div>
