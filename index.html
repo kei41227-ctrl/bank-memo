@@ -34,7 +34,7 @@
     position:sticky; top:0; z-index:15;
     display:flex; align-items:center; justify-content:space-between;
     padding:calc(6px + var(--safe-top)) 16px 12px;
-    background:linear-gradient(var(--bg) 82%, rgba(245,245,245,0));
+    background:var(--bg);
   }
   .round-btn{
     background:var(--card); border:none; color:var(--text); cursor:pointer; padding:0;
@@ -127,14 +127,19 @@
     display:flex;
   }
   .nav button{
-    flex:1; background:none; border:none; cursor:pointer; color:var(--text); border-radius:26px; padding:0;
-    font-size:12px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    flex:1; background:none; border:none; cursor:pointer; color:#333; border-radius:26px; padding:0;
+    font-size:12px; font-weight:600; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
   }
-  .nav button.on{color:var(--accent); background:#f0f0f0;}
+  .nav button.on{color:var(--accent); background:#efefef; font-weight:700;}
   .nav svg{width:26px; height:26px; display:block;}
   .nav .ic-list rect{fill:none;}
   .nav button.on .ic-list rect{fill:currentColor;}
   .nav button.on .ic-list .ln{stroke:#fff;}
+
+  /* ===== 月の見出し＋合計カードを上に貼り付け ===== */
+  .month-head{position:sticky; top:calc(62px + var(--safe-top)); z-index:5; background:var(--bg); padding:18px 0 10px;}
+  .month-head .sec-head{margin:0 0 14px;}
+  .month{margin-top:16px;}
 
   /* ===== Sheets ===== */
   .sheet-bg{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; display:none; align-items:flex-end; justify-content:center;}
@@ -199,13 +204,13 @@
 <div class="nav-fade"></div>
 <nav class="nav">
   <button id="tab-home" class="on" onclick="setTab('home')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M5.8 9.6V20h4.4v-5.6h3.6V20h4.4V9.6"/></svg>ホーム</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 11.6 12 3.4l9.2 8.2"/><path d="M5.4 9.4v9.8c0 .8.6 1.4 1.4 1.4h3v-4.9a2.2 2.2 0 0 1 4.4 0v4.9h3c.8 0 1.4-.6 1.4-1.4V9.4"/></svg>ホーム</button>
   <button id="tab-acct" onclick="setTab('account')">
     <svg class="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path class="ln" d="M7.2 9h.01M10.5 9h6.3M7.2 12h.01M10.5 12h6.3M7.2 15h.01M10.5 15h6.3" stroke-width="2"/></svg>普通預金</button>
   <button onclick="openTx()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9h16l-4.5-4.5"/><path d="M20.5 15h-16l4.5 4.5"/></svg>取引</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 8.2h12.4l-2.7-2.7 1.7-1.7 6.3 6.3H3z"/><path d="M21 15.8H8.6l2.7 2.7-1.7 1.7-6.3-6.3H21z"/></svg>取引</button>
   <button onclick="openMenu()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1.7 3.2h-2.6z"/><path d="M10.6 6.2C6.7 8.7 4.5 12.3 4.5 15.4c0 3.1 2.5 5.4 7.5 5.4s7.5-2.3 7.5-5.4c0-3.1-2.2-6.7-6.1-9.2"/><path d="M9.6 11.2 12 14l2.4-2.8M12 14v4.2M9.8 15.2h4.4M9.8 17.2h4.4"/></svg>マイページ</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.2 3.1c1.2.7 2.5.7 3.8 0 1.3.7 2.6.7 3.8 0l-2 3.5h-3.6z"/><path d="M10.2 6.6C6.6 9.1 4.6 12.5 4.6 15.4c0 3.4 2.8 5.5 7.4 5.5s7.4-2.1 7.4-5.5c0-2.9-2-6.3-5.6-8.8"/><path d="M9.7 10.9 12 13.8l2.3-2.9M12 13.8v4.4M9.8 14.9h4.4M9.8 16.9h4.4"/></svg>マイページ</button>
 </nav>
 
 <!-- 取引入力 -->
@@ -479,13 +484,15 @@ function monthSectionsHtml(list, ym, withCurrent){
     const title = g.key===ym ? '今月' : `${yy}年${parseInt(mm)}月`;
     let mi=0, mo=0; g.txs.forEach(t=>{ if(t.type==='in') mi+=t.amount; else mo+=t.amount; });
     const link = (filter&&filter.month===g.key) ? '' : `<button class="link" onclick="setMonth('${g.key}')">この月だけ見る</button>`;
-    let h=`<div class="sec-head"><span>${title}</span>${link}</div>
+    // month-head はスクロールしても上に貼り付く（その月の明細を見ている間、入金・出金が見える）
+    let h=`<section class="month"><div class="month-head">
+      <div class="sec-head"><span>${title}</span>${link}</div>
       <div class="card sum-card">
         ${showIn?`<div class="sum-line"><span class="lbl">入金</span><span class="v in num">${yenHtml(mi)}</span></div>`:''}
         ${showOut?`<div class="sum-line"><span class="lbl">出金</span><span class="v num">${yenHtml(mo)}</span></div>`:''}
-      </div>`;
+      </div></div>`;
     if(g.txs.length) h+=`<div class="card">${g.txs.map(txRow).join('')}</div>`;
-    return h;
+    return h+'</section>';
   }).join('');
 }
 
