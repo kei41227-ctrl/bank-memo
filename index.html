@@ -12,9 +12,9 @@
 <title>入出金メモ</title>
 <style>
   :root{
-    --bg:#f5f5f5; --card:#ffffff; --text:#1f1f1f; --sub:#8a8a8a;
-    --line:#e8e8e8; --in:#16b877; --out:#1f1f1f; --accent:#16b877;
-    --shadow:0 2px 10px rgba(0,0,0,.07);
+    --bg:#f7f7f7; --card:#ffffff; --text:#1f1f1f; --sub:#8a8a8a;
+    --line:#e8e8e8; --in:#20ad84; --out:#1f1f1f; --accent:#20ad84;
+    --shadow:0 8px 26px rgba(0,0,0,.07);
     --safe-top:env(safe-area-inset-top,0px);
     --safe-bottom:env(safe-area-inset-bottom,0px);
   }
@@ -33,7 +33,7 @@
   .topbar{
     position:sticky; top:0; z-index:15;
     display:flex; align-items:center; justify-content:space-between;
-    padding:calc(6px + var(--safe-top)) 16px 12px;
+    padding:var(--safe-top) 16px 14px;
     background:var(--bg);
   }
   .round-btn{
@@ -41,6 +41,7 @@
     width:44px; height:44px; border-radius:50%; box-shadow:var(--shadow);
     display:flex; align-items:center; justify-content:center;
   }
+  .topbar-actions{display:flex; align-items:center; gap:12px;}
   .pill-btns{display:flex; background:var(--card); border-radius:22px; box-shadow:var(--shadow); height:44px; padding:0 4px;}
   .pill-btns button{
     background:none; border:none; color:var(--text); cursor:pointer; padding:0; position:relative;
@@ -51,9 +52,9 @@
 
   /* ===== 残高（普通預金タブ） ===== */
   .bal-wrap{padding:12px 0 0;}
-  .bal-title{font-size:19px; font-weight:700;}
-  .bal-amt{display:flex; align-items:baseline; font-size:38px; font-weight:800; letter-spacing:-.5px; line-height:1.25; margin-top:6px;}
-  .bal-amt .yen{font-size:21px; font-weight:700; margin-left:8px;}
+  .bal-title{font-size:17px; font-weight:700;}
+  .bal-amt{display:flex; align-items:baseline; font-size:34px; font-weight:800; letter-spacing:-.5px; line-height:1.25; margin-top:6px;}
+  .bal-amt .yen{font-size:20px; font-weight:700; margin-left:8px;}
   .eye{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;margin-left:8px;}
   .eye svg{display:block;}
   .bal-amt .eye{align-self:flex-end; margin-bottom:6px;}
@@ -69,15 +70,15 @@
   .balance-card .eye{color:#fff; margin-left:2px;}
 
   /* ===== フィルターチップ ===== */
-  .chips{display:flex; gap:8px; padding:30px 16px 8px 18px; margin:0 -16px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .chips{display:flex; gap:8px; padding:40px 16px 8px 20px; margin:0 -16px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .chips::-webkit-scrollbar{display:none;}
   .chip{
     flex-shrink:0; border:none; background:var(--card); color:var(--text); cursor:pointer;
-    height:38px; min-width:50px; padding:0 16px; border-radius:19px;
-    font-size:16px; font-weight:700; box-shadow:var(--shadow);
+    height:36px; min-width:48px; padding:0 10px; border-radius:20px;
+    font-size:16px; font-weight:500; box-shadow:none;
   }
   .chip.on{background:var(--accent); color:#fff;}
-  .search-link{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0 0;}
+  .search-link{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:4px 0 0;}
   .search-link button{background:none;border:none;color:var(--accent);font-size:17px;font-weight:500;cursor:pointer;padding:4px 0;}
   .search-link button:only-child{margin-left:auto;}
   .search-link .clear{color:var(--sub); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
@@ -89,10 +90,10 @@
     margin:34px 0 14px; font-size:18px; font-weight:700; scroll-margin-top:calc(80px + var(--safe-top));
   }
   .sec-head .link{font-size:17px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;}
-  .card{background:var(--card); border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.04); overflow:hidden;}
+  .card{background:var(--card); border-radius:8px; box-shadow:none; overflow:hidden;}
   .card + .card{margin-top:10px;}
-  .sum-card{padding:17px 16px;}
-  .sum-line{display:flex; align-items:baseline; gap:9px; font-size:17px; font-weight:500; line-height:1.3;}
+  .sum-card{padding:15.5px 16px;}
+  .sum-line{display:flex; align-items:baseline; gap:7px; font-size:17px; font-weight:500; line-height:1.3;}
   .sum-line + .sum-line{margin-top:6px;}
   .sum-line .v{font-size:17.5px; font-weight:600;}
   .sum-line .v .u{font-size:17.5px; font-weight:500; margin-left:6px;}
@@ -105,7 +106,7 @@
   .plan-head.open .chev{transform:rotate(180deg);}
 
   /* ===== 明細の行 ===== */
-  .tx{display:flex; align-items:center; gap:12px; padding:17px 16px 16px; cursor:pointer; position:relative; background:var(--card);}
+  .tx{display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; position:relative; background:var(--card);}
   .card > :not(:first-child).tx::before{content:''; position:absolute; top:0; left:16px; right:16px; height:1px; background:var(--line);}
   .tx .body{flex:1; min-width:0;}
   .tx .ttl{font-size:17px; font-weight:400; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -118,9 +119,9 @@
 
   /* ===== Bottom nav（浮いた丸いバー） ===== */
   .nav-fade{position:fixed; left:0; right:0; bottom:0; height:calc(100px + var(--safe-bottom)); z-index:19; pointer-events:none;
-    background:linear-gradient(rgba(245,245,245,0), rgba(245,245,245,.92) 55%);}
+    background:linear-gradient(rgba(247,247,247,0), rgba(247,247,247,.92) 55%);}
   .nav{
-    position:fixed; left:20px; right:20px; bottom:max(12px, calc(var(--safe-bottom) - 10px)); z-index:20;
+    position:fixed; left:20px; right:20px; bottom:max(12px, calc(var(--safe-bottom) - 13px)); z-index:20;
     max-width:480px; margin:0 auto; height:62px; padding:4px;
     background:rgba(255,255,255,.97); backdrop-filter:saturate(180%) blur(12px);
     border-radius:32px; box-shadow:0 4px 22px rgba(0,0,0,.11);
@@ -130,16 +131,18 @@
     flex:1; background:none; border:none; cursor:pointer; color:#333; border-radius:26px; padding:0;
     font-size:11px; font-weight:500; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
   }
-  .nav button.on{color:var(--accent); background:#efefef; font-weight:600;}
+  .nav button.on{flex:1.12; color:var(--accent); background:#efefef; font-weight:600;}
   .nav svg{width:26px; height:26px; display:block;}
   .nav .ic-list rect{fill:none;}
   .nav button.on .ic-list rect{fill:currentColor;}
   .nav button.on .ic-list .ln{stroke:#fff;}
 
   /* ===== 月の見出し＋合計カードを上に貼り付け ===== */
-  .month-head{position:sticky; top:calc(62px + var(--safe-top)); z-index:5; background:var(--bg); padding:18px 0 10px;}
-  .month-head .sec-head{margin:0 0 11px;}
+  .month-head{position:sticky; top:calc(58px + var(--safe-top)); z-index:5; background:var(--bg); padding:0 0 9px;}
+  .month-head .sec-head{margin:0 0 7px; font-size:17px;}
   .month{margin-top:16px;}
+  .search-link + .month{margin-top:0;}
+  .sum-line.report-net{margin-top:16px; padding-top:16px; border-top:1px solid var(--line);}
 
   /* ===== Sheets ===== */
   .sheet-bg{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; display:none; align-items:flex-end; justify-content:center;}
@@ -187,7 +190,11 @@
   <button class="round-btn" onclick="openAccts()" aria-label="口座を選ぶ">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4c1.4-2.1 3.4-3.2 5.8-3.2s4.4 1.1 5.8 3.2"/></svg>
   </button>
-  <div class="pill-btns">
+  <div class="topbar-actions">
+    <button class="round-btn" onclick="setTab('account')" aria-label="入出金明細">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M8 4v1m0 3v1m0 3v1m0 3v1m0 2v1M3 8h1M3 16h1"/></svg>
+    </button>
+    <div class="pill-btns">
     <button onclick="openPlans()" aria-label="予定">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2H4.4z"/><path d="M10 21a2.2 2.2 0 0 0 4 0"/></svg>
       <span class="badge" id="bell-badge" hidden></span>
@@ -195,6 +202,7 @@
     <button id="lock-btn" onclick="toggleLock()" aria-label="その他">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.8c-5 0-9 3.3-9 7.4 0 2.2 1.1 4.1 2.9 5.5L5.3 20.4l4.2-1.8c.8.2 1.6.3 2.5.3 5 0 9-3.3 9-7.4s-4-7.7-9-7.7z"/><circle cx="8" cy="11.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="16" cy="11.4" r="1.1" fill="currentColor" stroke="none"/></svg>
     </button>
+  </div>
   </div>
 </div>
 
@@ -212,6 +220,15 @@
   <button onclick="openMenu()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.2 3.1c1.2.7 2.5.7 3.8 0 1.3.7 2.6.7 3.8 0l-2 3.5h-3.6z"/><path d="M10.2 6.6C6.6 9.1 4.6 12.5 4.6 15.4c0 3.4 2.8 5.5 7.4 5.5s7.4-2.1 7.4-5.5c0-2.9-2-6.3-5.6-8.8"/><path d="M9.7 10.9 12 13.8l2.3-2.9M12 13.8v4.4M9.8 14.9h4.4M9.8 16.9h4.4"/></svg>マイページ</button>
 </nav>
+
+<!-- 月別レポート -->
+<div class="sheet-bg" id="report-sheet">
+  <div class="sheet">
+    <h2 id="report-title">収支レポート</h2>
+    <div id="report-content"></div>
+    <button class="btn ghost" style="margin-top:18px; width:100%;" onclick="closeSheet('report-sheet')">閉じる</button>
+  </div>
+</div>
 
 <!-- 取引入力 -->
 <div class="sheet-bg" id="tx-sheet">
@@ -332,8 +349,9 @@ const BANKS = [
 const DEFAULT_COLOR = '#16b877';
 
 function applyTheme(color){
-  document.documentElement.style.setProperty('--accent', color);
-  document.documentElement.style.setProperty('--in', color);
+  const displayColor=color===DEFAULT_COLOR?'#20ad84':color;
+  document.documentElement.style.setProperty('--accent', displayColor);
+  document.documentElement.style.setProperty('--in', displayColor);
 }
 
 let data = load();
@@ -368,6 +386,10 @@ function toHankaku(str){
   out=out.trim();
   return out.includes('\u3000') ? out : out.replace(/ +/,'\u3000');
 }
+function displayMemo(memo){
+  const text=String(memo||'');
+  return /[A-Za-zＡ-Ｚａ-ｚ]/.test(text) ? toHankaku(text) : text;
+}
 function eyeSvg(off){
   const a='width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
   return off
@@ -400,7 +422,7 @@ function render(){
 }
 
 function balEyeHtml(hidden){
-  return `<button class="eye" onclick="toggleHide()" aria-label="残高表示切替">${eyeSvg(hidden)}</button>`;
+  return `<button class="eye" onclick="toggleHide()" aria-label="${hidden?'残高を表示':'残高を隠す'}">${eyeSvg(!hidden)}</button>`;
 }
 function yenHtml(n){ return `${fmt(n)}<span class="u">円</span>`; }
 
@@ -502,7 +524,7 @@ function monthSectionsHtml(list, ym, withCurrent){
     const [yy,mm]=g.key.split('-');
     const title = g.key===ym ? '今月' : `${yy}年${parseInt(mm)}月`;
     let mi=0, mo=0; g.txs.forEach(t=>{ if(t.type==='in') mi+=t.amount; else mo+=t.amount; });
-    const link = (filter&&filter.month===g.key) ? '' : `<button class="link" onclick="setMonth('${g.key}')">この月だけ見る</button>`;
+    const link = `<button class="link" onclick="openReport('${g.key}')">レポートを見る</button>`;
     // month-head はスクロールしても上に貼り付く（その月の明細を見ている間、入金・出金が見える）
     let h=`<section class="month"><div class="month-head">
       <div class="sec-head"><span>${title}</span>${link}</div>
@@ -515,11 +537,24 @@ function monthSectionsHtml(list, ym, withCurrent){
   }).join('');
 }
 
+function openReport(month){
+  const transactions=acct().txs.filter(t=>t.date<=todayStr() && t.date.slice(0,7)===month);
+  const income=transactions.filter(t=>t.type==='in').reduce((sum,t)=>sum+t.amount,0);
+  const expense=transactions.filter(t=>t.type==='out').reduce((sum,t)=>sum+t.amount,0);
+  const [year,mm]=month.split('-');
+  document.getElementById('report-title').textContent=`${year}年${Number(mm)}月の収支`;
+  document.getElementById('report-content').innerHTML=`
+    <div class="sum-line"><span>入金</span><span class="v in num">${yenHtml(income)}</span></div>
+    <div class="sum-line"><span>出金</span><span class="v num">${yenHtml(expense)}</span></div>
+    <div class="sum-line report-net"><span>収支</span><span class="v num ${income>=expense?'in':''}">${yenHtml(income-expense)}</span></div>`;
+  openSheet('report-sheet');
+}
+
 function txRow(t){
   const sign = t.type==='in'? '' : '-';
   return `<div class="tx" onclick="openTx('${t.id}')">
     <div class="body">
-      <div class="ttl">${esc(toHankaku(t.memo||'') || (t.type==='in'?'入金':'出金'))}</div>
+      <div class="ttl">${esc(displayMemo(t.memo) || (t.type==='in'?'入金':'出金'))}</div>
       <div class="date">${dotJP(t.date)}</div>
     </div>
     <div class="amt ${t.type} num">${sign}${yenHtml(t.amount)}</div>
